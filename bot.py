@@ -369,7 +369,18 @@ async def setup_hook():
     # (Sincronizar globalmente pode levar até 1h para aparecer no Discord.)
     guild_obj = discord.Object(id=GUILD_ID)
     bot.tree.copy_global_to(guild=guild_obj)
-    await bot.tree.sync(guild=guild_obj)
+    try:
+        await bot.tree.sync(guild=guild_obj)
+    except discord.Forbidden:
+        # Causa quase sempre: o bot foi convidado sem o escopo "applications.commands".
+        # Não deixamos isso derrubar o bot inteiro — só avisamos no log e seguimos.
+        log.error(
+            "Não consegui sincronizar os comandos (/) neste servidor (403 Missing Access). "
+            "Gere um novo link em OAuth2 > URL Generator marcando TAMBÉM 'applications.commands' "
+            "(além de 'bot') e reautorize o bot no servidor."
+        )
+    except Exception:
+        log.exception("Erro inesperado ao sincronizar os comandos (/).")
 
 
 @bot.event
