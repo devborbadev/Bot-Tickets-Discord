@@ -1,18 +1,4 @@
 """
-Bot de Tickets para Discord
-----------------------------------------------------------------------------
-Publica um painel com 4 botões (Venda de contas / Compra de conta /
-Reporte um Scammer / Dúvidas). Cada clique cria um canal de ticket privado,
-visível apenas para quem abriu e para o cargo de staff configurado.
-
-Como rodar:
-    1. Preencha o arquivo .env (veja .env.example)
-    2. pip install -r requirements.txt
-    3. python bot.py
-
-Veja o README.md para o passo a passo completo.
-----------------------------------------------------------------------------
-"""
 
 import asyncio
 import io
@@ -25,9 +11,6 @@ from discord import app_commands
 from discord.ext import commands
 from dotenv import load_dotenv
 
-# ---------------------------------------------------------------------------
-# 1) Configuração e variáveis de ambiente
-# ---------------------------------------------------------------------------
 load_dotenv()
 
 TOKEN = os.getenv("DISCORD_TOKEN")
@@ -40,8 +23,6 @@ MAX_CHANNELS_PER_CATEGORY = 50  # limite do próprio Discord, não é escolha no
 
 log = logging.getLogger("ticket-bot")
 
-# Falha rápido e com uma mensagem clara se faltar alguma variável obrigatória,
-# em vez de travar mais tarde com um erro confuso.
 _faltando = [
     nome
     for nome, valor in {
@@ -67,11 +48,6 @@ except ValueError:
         "GUILD_ID, STAFF_ROLE_ID e LOG_CHANNEL_ID devem ser números (IDs do Discord)."
     )
 
-# ---------------------------------------------------------------------------
-# 2) Configuração do bot
-#    Nenhuma intent privilegiada é necessária: não lemos o conteúdo de
-#    mensagens, só reagimos a comandos e cliques em botão.
-# ---------------------------------------------------------------------------
 intents = discord.Intents.default()
 bot = commands.Bot(command_prefix="!", intents=intents)
 
@@ -123,10 +99,6 @@ def find_open_ticket(categoria: discord.CategoryChannel, user_id: int) -> discor
             return canal
     return None
 
-
-# ---------------------------------------------------------------------------
-# 3) Painel principal (os 4 botões que os usuários clicam)
-# ---------------------------------------------------------------------------
 class TicketPanelView(discord.ui.View):
     def __init__(self):
         super().__init__(timeout=None)  # obrigatório para o botão sobreviver a um restart
@@ -248,10 +220,6 @@ class TicketPanelView(discord.ui.View):
     async def duvidas(self, interaction: discord.Interaction, button: discord.ui.Button):
         await self._handle(interaction, "ticket_duvidas")
 
-
-# ---------------------------------------------------------------------------
-# 4) Fechamento de ticket (com confirmação, para evitar fechar sem querer)
-# ---------------------------------------------------------------------------
 def is_staff_or_owner(member: discord.Member, channel: discord.TextChannel) -> bool:
     if channel.permissions_for(member).manage_channels:
         return True
@@ -322,9 +290,6 @@ async def send_transcript(channel: discord.TextChannel):
     await log_channel.send(content=f"📄 Transcript de **#{channel.name}**", file=arquivo)
 
 
-# ---------------------------------------------------------------------------
-# 5) Comando para publicar o painel (só quem tem permissão de gerenciar o servidor)
-# ---------------------------------------------------------------------------
 @bot.tree.command(name="painel-tickets", description="Publica o painel de tickets neste canal.")
 @app_commands.checks.has_permissions(manage_guild=True)
 async def painel_tickets(interaction: discord.Interaction):
@@ -354,10 +319,6 @@ async def painel_tickets_error(interaction: discord.Interaction, error: app_comm
     else:
         await interaction.response.send_message(msg, ephemeral=True)
 
-
-# ---------------------------------------------------------------------------
-# 6) Ciclo de vida do bot
-# ---------------------------------------------------------------------------
 @bot.event
 async def setup_hook():
     # Registra as views persistentes: sem isso, os botões param de responder
