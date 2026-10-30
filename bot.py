@@ -16,10 +16,10 @@ load_dotenv()
 TOKEN = os.getenv("DISCORD_TOKEN")
 _GUILD_ID_RAW = os.getenv("GUILD_ID")
 _STAFF_ROLE_ID_RAW = os.getenv("STAFF_ROLE_ID")
-_LOG_CHANNEL_ID_RAW = os.getenv("LOG_CHANNEL_ID")  # opcional
+_LOG_CHANNEL_ID_RAW = os.getenv("LOG_CHANNEL_ID")
 
 CATEGORY_NAME = "🎫 Tickets"
-MAX_CHANNELS_PER_CATEGORY = 50  # limite do próprio Discord, não é escolha nossa
+MAX_CHANNELS_PER_CATEGORY = 50
 
 log = logging.getLogger("ticket-bot")
 
@@ -51,7 +51,6 @@ except ValueError:
 intents = discord.Intents.default()
 bot = commands.Bot(command_prefix="!", intents=intents)
 
-# Trava simples em memória para evitar que um clique duplo crie 2 tickets
 _criando_agora: set[int] = set()
 
 TIPOS_TICKET = {
@@ -101,7 +100,7 @@ def find_open_ticket(categoria: discord.CategoryChannel, user_id: int) -> discor
 
 class TicketPanelView(discord.ui.View):
     def __init__(self):
-        super().__init__(timeout=None)  # obrigatório para o botão sobreviver a um restart
+        super().__init__(timeout=None)
 
     async def _handle(self, interaction: discord.Interaction, custom_id: str):
         tipo = TIPOS_TICKET[custom_id]
@@ -231,7 +230,7 @@ def is_staff_or_owner(member: discord.Member, channel: discord.TextChannel) -> b
 
 class ConfirmCloseView(discord.ui.View):
     def __init__(self, quem_fechou: discord.Member):
-        super().__init__(timeout=60)  # confirmação é efêmera e de curta duração: não precisa ser persistente
+        super().__init__(timeout=60)
         self.quem_fechou = quem_fechou
 
     async def interaction_check(self, interaction: discord.Interaction) -> bool:
@@ -287,7 +286,7 @@ async def send_transcript(channel: discord.TextChannel):
         linhas.append(f"[{msg.created_at:%d/%m/%Y %H:%M}] {msg.author}: {msg.content}")
     conteudo = "\n".join(linhas) or "(sem mensagens)"
     arquivo = discord.File(fp=io.BytesIO(conteudo.encode("utf-8")), filename=f"transcript-{channel.name}.txt")
-    await log_channel.send(content=f"📄 Transcript de **#{channel.name}**", file=arquivo)
+    await log_channel.send(content=f"📄 Transcript de **{channel.name}**", file=arquivo)
 
 
 @bot.tree.command(name="painel-tickets", description="Publica o painel de tickets neste canal.")
@@ -321,20 +320,14 @@ async def painel_tickets_error(interaction: discord.Interaction, error: app_comm
 
 @bot.event
 async def setup_hook():
-    # Registra as views persistentes: sem isso, os botões param de responder
-    # depois que o bot reinicia (ex.: um redeploy no Railway).
     bot.add_view(TicketPanelView())
     bot.add_view(CloseTicketView())
 
-    # Sincroniza os comandos de barra (/) direto nesta guild = aparece na hora.
-    # (Sincronizar globalmente pode levar até 1h para aparecer no Discord.)
     guild_obj = discord.Object(id=GUILD_ID)
     bot.tree.copy_global_to(guild=guild_obj)
     try:
         await bot.tree.sync(guild=guild_obj)
     except discord.Forbidden:
-        # Causa quase sempre: o bot foi convidado sem o escopo "applications.commands".
-        # Não deixamos isso derrubar o bot inteiro — só avisamos no log e seguimos.
         log.error(
             "Não consegui sincronizar os comandos (/) neste servidor (403 Missing Access). "
             "Gere um novo link em OAuth2 > URL Generator marcando TAMBÉM 'applications.commands' "
