@@ -1,5 +1,3 @@
-"""
-
 import asyncio
 import io
 import logging
@@ -60,9 +58,7 @@ TIPOS_TICKET = {
     "ticket_duvidas": "Dúvidas",
 }
 
-
 def sanitize_name(texto: str) -> str:
-    """Converte um texto em algo seguro para usar como nome de canal do Discord."""
     texto = texto.lower().strip()
     seguro = "".join(c if c.isalnum() else "-" for c in texto)
     while "--" in seguro:
@@ -70,9 +66,7 @@ def sanitize_name(texto: str) -> str:
     seguro = seguro.strip("-")
     return seguro[:20] or "usuario"
 
-
 async def get_or_create_category(guild: discord.Guild) -> discord.CategoryChannel:
-    """Procura a categoria de tickets pelo nome; cria se ainda não existir."""
     categoria = discord.utils.get(guild.categories, name=CATEGORY_NAME)
     if categoria is not None:
         return categoria
@@ -89,9 +83,7 @@ async def get_or_create_category(guild: discord.Guild) -> discord.CategoryChanne
     log.info("Categoria '%s' criada.", CATEGORY_NAME)
     return categoria
 
-
 def find_open_ticket(categoria: discord.CategoryChannel, user_id: int) -> discord.TextChannel | None:
-    """Procura, pelo tópico do canal, se este usuário já tem um ticket aberto."""
     marcador = f"uid:{user_id}"
     for canal in categoria.text_channels:
         if canal.topic and marcador in canal.topic:
@@ -227,7 +219,6 @@ def is_staff_or_owner(member: discord.Member, channel: discord.TextChannel) -> b
         return True
     return bool(channel.topic and f"uid:{member.id}" in channel.topic)
 
-
 class ConfirmCloseView(discord.ui.View):
     def __init__(self, quem_fechou: discord.Member):
         super().__init__(timeout=60)
@@ -257,7 +248,6 @@ class ConfirmCloseView(discord.ui.View):
     async def cancelar(self, interaction: discord.Interaction, button: discord.ui.Button):
         await interaction.response.edit_message(content="Fechamento cancelado.", view=None)
 
-
 class CloseTicketView(discord.ui.View):
     def __init__(self):
         super().__init__(timeout=None)
@@ -275,9 +265,7 @@ class CloseTicketView(discord.ui.View):
             ephemeral=True,
         )
 
-
 async def send_transcript(channel: discord.TextChannel):
-    """Salva um histórico simples em .txt no canal de logs (se configurado)."""
     log_channel = bot.get_channel(LOG_CHANNEL_ID)
     if log_channel is None:
         return
@@ -287,7 +275,6 @@ async def send_transcript(channel: discord.TextChannel):
     conteudo = "\n".join(linhas) or "(sem mensagens)"
     arquivo = discord.File(fp=io.BytesIO(conteudo.encode("utf-8")), filename=f"transcript-{channel.name}.txt")
     await log_channel.send(content=f"📄 Transcript de **{channel.name}**", file=arquivo)
-
 
 @bot.tree.command(name="painel-tickets", description="Publica o painel de tickets neste canal.")
 @app_commands.checks.has_permissions(manage_guild=True)
@@ -302,7 +289,6 @@ async def painel_tickets(interaction: discord.Interaction):
     )
     await interaction.channel.send(embed=embed, view=TicketPanelView())
     await interaction.response.send_message("Painel publicado com sucesso!", ephemeral=True)
-
 
 @painel_tickets.error
 async def painel_tickets_error(interaction: discord.Interaction, error: app_commands.AppCommandError):
@@ -336,11 +322,9 @@ async def setup_hook():
     except Exception:
         log.exception("Erro inesperado ao sincronizar os comandos (/).")
 
-
 @bot.event
 async def on_ready():
     log.info("Bot conectado como %s (ID: %s). Pronto para uso.", bot.user, bot.user.id)
-
 
 if __name__ == "__main__":
     bot.run(TOKEN)
